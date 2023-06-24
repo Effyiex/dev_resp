@@ -1,0 +1,11 @@
+
+[package]
+name = "dev_resp"
+version = "0.1.0"
+edition = "2021"
+authors = ["Effyiex"]
+
+[dependencies]
+device_query = "0.1.0"
+rodio = "0.17.1"
+rand = "0.8.5"
