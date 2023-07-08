@@ -1,4 +1,6 @@
 
+#![windows_subsystem = "windows"]
+
 use std::{
     time::Duration,
     thread::sleep,
