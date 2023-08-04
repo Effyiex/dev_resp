@@ -23,7 +23,7 @@ use rodio::{
 };
 
 const TICKRATE: u64 = 10000;
-const VOLUME: f32 = 0.05;
+const VOLUME: f32 = 0.025;
 
 const KEY_PRESS_AUDIO: Option<&[u8]> = Some(include_bytes!("press.wav"));
 const KEY_RELEASE_AUDIO: Option<&[u8]> = Some(include_bytes!("release.wav"));
@@ -37,6 +37,7 @@ const TRIGGERLESS: [&Keycode; 6] = [
     &Keycode::RAlt
 ];
 
+const TOGGLE_AUDIO: Option<&[u8]> = Some(include_bytes!("toggle.wav"));
 const TOGGLE_SEQ: [&Keycode; 3] = [
     &Keycode::LControl,
     &Keycode::LAlt,
@@ -87,10 +88,29 @@ fn handle_key_states(
 
 }
 
+fn handle_toggle(
+    audio_handle: &OutputStreamHandle,
+    latest_toggle_keys: &usize,
+    prev_toggle_keys: &usize
+) -> bool {
+
+    if &TOGGLE_SEQ.len() <= latest_toggle_keys 
+    && latest_toggle_keys != prev_toggle_keys {
+        if let Some(audio_data) = TOGGLE_AUDIO {
+            let audio_cursor = Cursor::new(audio_data.to_vec());
+            invoke_cursor_audio(&audio_handle, &audio_cursor);
+        }
+        return true;
+    } else {
+        return false;
+    }
+
+}
+
 fn main() {
-
+    
     let (_stream, audio_handle) = OutputStream::try_default().unwrap();
-
+    
     let dv_state = DeviceState::new();
 
     let mut prev_hold_keys: Vec<Keycode> = dv_state.get_keys();
@@ -102,18 +122,16 @@ fn main() {
 
         let latest_hold_keys: Vec<Keycode> = dv_state.get_keys();
 
-        let mut active_toggle_keys: usize = 0;
+        let mut latest_toggle_keys: usize = 0;
         for toggle_key in &TOGGLE_SEQ {
             if latest_hold_keys.contains(&toggle_key) {
-                active_toggle_keys += 1;
+                latest_toggle_keys += 1;
             }
         }
-        if TOGGLE_SEQ.len() <= active_toggle_keys 
-        && active_toggle_keys != prev_toggle_keys {
+        if handle_toggle(&audio_handle, &latest_toggle_keys, &prev_toggle_keys) {
             active = !active;
-            println!("Toggled: {}", active);
         }
-        prev_toggle_keys = active_toggle_keys;
+        prev_toggle_keys = latest_toggle_keys;
 
         if active {
             handle_key_states(&audio_handle, &latest_hold_keys, &prev_hold_keys);
